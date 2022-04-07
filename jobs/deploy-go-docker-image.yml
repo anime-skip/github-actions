@@ -18,6 +18,10 @@ on:
         required: true
         type: string
         description: The stage to deploy to (prod-email-service, staged-email-service)
+      repository:
+        required: true
+        type: string
+        description: anime-skip/<repo-name>, just pass ${{ github.repository }}
       version:
         required: true
         type: string
@@ -111,7 +115,7 @@ jobs:
               "builderName": "${{ github.actor }}",
               "sourceControl": {
                 "provider": "github",
-                "repository": "https://github.com/anime-skip/email-service",
+                "repository": "https://github.com/${{ inputs.repository }}",
                 "revision": "${{ steps.details.outputs.commit_sha }}"
               },
               "metadata": {}
