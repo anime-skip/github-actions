@@ -1,0 +1,118 @@
+name: Deploy Go Docker Image
+on:
+  workflow_call:
+    inputs:
+      stage:
+        required: true
+        type: string
+        description: The stage to deploy to (production, staged)
+      githubImage:
+        required: true
+        type: string
+        description: The stage to deploy to (email-service/email-api)
+      tag:
+        required: true
+        type: string
+        description: The stage to deploy to (prod, staged)
+      herokuApp:
+        required: true
+        type: string
+        description: The stage to deploy to (prod-email-service, staged-email-service)
+      version:
+        required: true
+        type: string
+        description: The new version that is getting deployed (1.2.5, 0.4.0, etc.)
+    secrets:
+      bugsnagApiKey:
+        required: true
+      herokuApiKey:
+        required: true
+      herokuEmail:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy (${{ inputs.stage }})
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v1
+
+      - name: Pull in Version Change
+        run: git checkout main
+
+      - run: |
+          echo ${{ secrets.herokuEmail }}
+          echo ${{ secrets.herokuApiKey }}
+
+      - name: Log into Heroku CLI
+        uses: akhileshns/heroku-deploy@v3.7.8
+        with:
+          heroku_api_key: ${{ secrets.herokuApiKey }}
+          heroku_app_name: ""
+          heroku_email: ${{ secrets.herokuEmail }}
+          justlogin: true
+
+      - name: Log into Heroku Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: registry.heroku.com
+          username: ${{ secrets.herokuEmail }}
+          password: ${{ secrets.herokuApiKey }}
+
+      - name: Log into Github Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: docker.pkg.github.com
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Details
+        id: details
+        run: |
+          VERSION="${{ inputs.version }}-$(TZ=UTC git --no-pager show --quiet --abbrev=12 --date='format-local:%Y%m%d%H%M%S' --format='%cd-%h')"
+          COMMIT_SHA="$(git --no-pager show --quiet --abbrev=40 --format='%h')"
+
+          echo "::set-output name=simple_version::$SIMPLE_VERSION"
+          echo "::set-output name=version::$VERSION"
+          echo "::set-output name=commit_sha::$COMMIT_SHA"
+          echo "::set-output name=github_image_latest::docker.pkg.github.com/anime-skip/${{ inputs.githubImage }}:${{ inputs.tag }}"
+          echo "::set-output name=github_image_archived::docker.pkg.github.com/anime-skip/${{ inputs.githubImage }}:${{ inputs.version }}"
+          echo "::set-output name=heroku_image_deployed::registry.heroku.com/${{ inputs.herokuApp }}/web"
+
+      - name: Build :${{ inputs.tag }}
+        run: |
+          docker build . \
+            --build-arg VERSION=${{ steps.details.outputs.version }} \
+            --build-arg STAGE=${{ inputs.stage }} \
+            -t ${{ steps.details.outputs.github_image_latest }} \
+            -t ${{ steps.details.outputs.github_image_archived }} \
+            -t ${{ steps.details.outputs.heroku_image_deployed }}
+
+      - name: Push Image
+        run: |
+          docker push ${{ steps.details.outputs.github_image_latest }}
+          docker push ${{ steps.details.outputs.github_image_archived }}
+          docker push ${{ steps.details.outputs.heroku_image_deployed }}
+
+      - name: Deploy :${{ inputs.tag }}
+        run: |
+          heroku container:release -a ${{ inputs.herokuApp }} web
+
+      - name: Notify Bugsnag Sources
+        run: |
+          curl https://build.bugsnag.com/ \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --data '{
+              "apiKey": "${{ secrets.bugsnagApiKey }}",
+              "appVersion": "${{ steps.details.outputs.version }}",
+              "releaseStage": "${{ inputs.stage }}",
+              "builderName": "${{ github.actor }}",
+              "sourceControl": {
+                "provider": "github",
+                "repository": "https://github.com/anime-skip/email-service",
+                "revision": "${{ steps.details.outputs.commit_sha }}"
+              },
+              "metadata": {}
+            }'

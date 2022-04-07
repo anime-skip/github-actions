@@ -1,0 +1,47 @@
+name: Bump Version
+on:
+  workflow_call:
+    inputs:
+      versionFile:
+        type: string
+        description: The path in the repo to the file that tracks the version-file
+        required: true
+    outputs:
+      skipped:
+        description: If a new release was skipped because there was no changes
+        value: ${{ jobs.bump_version.outputs.skipped }}
+      version:
+        description: The new version
+        value: ${{ jobs.bump_version.outputs.version }}
+
+jobs:
+  bump_version:
+    name: Bump Version
+    runs-on: ubuntu-20.04
+    outputs:
+      skipped: ${{ steps.changelog.outputs.skipped }}
+      version: ${{ steps.changelog.outputs.version }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create Changelog
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v3
+        with:
+          github-token: ${{ secrets.github_token }}
+          version-file: ${{ inputs.versionFile }}
+          output-file: "false"
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        if: ${{ steps.changelog.outputs.skipped != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          release_name: ${{ steps.changelog.outputs.tag }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
