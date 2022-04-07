@@ -21,7 +21,7 @@ on:
       repository:
         required: true
         type: string
-        description: anime-skip/<repo-name>, just pass ${{ github.repository }}
+        description: anime-skip/<repo-name>, just pass github.repository
       version:
         required: true
         type: string
