@@ -9,19 +9,22 @@ on:
     outputs:
       skipped:
         description: If a new release was skipped because there was no changes
-        value: ${{ jobs.bump_version.outputs.skipped }}
+        value: ${{ jobs.bumpVersion.outputs.skipped }}
       version:
         description: The new version
-        value: ${{ jobs.bump_version.outputs.version }}
+        value: ${{ jobs.bumpVersion.outputs.version }}
       tag:
         description: The new tag
-        value: ${{ jobs.bump_version.outputs.tag }}
+        value: ${{ jobs.bumpVersion.outputs.tag }}
       cleanChangelog:
         description: The markdown changelog
-        value: ${{ jobs.bump_version.outputs.cleanChangelog }}
+        value: ${{ jobs.bumpVersion.outputs.cleanChangelog }}
+      commitHash:
+        description: The commit hash for the version bump commit
+        value: ${{ jobs.bumpVersion.outputs.commitHash }}
 
 jobs:
-  bump_version:
+  bumpVersion:
     name: Bump Version
     runs-on: ubuntu-20.04
     outputs:
