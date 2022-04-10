@@ -88,11 +88,11 @@ jobs:
           echo "::set-output name=simple_version::$SIMPLE_VERSION"
           echo "::set-output name=version::$VERSION"
           echo "::set-output name=commit_sha::$COMMIT_SHA"
-          echo "::set-output name=github_image_latest::docker.pkg.github.com/anime-skip/${{ inputs.githubImage }}:${{ inputs.tag }}"
+          echo "::set-output name=github_image_latest::docker.pkg.github.com/anime-skip/${{ inputs.githubImage }}:${{ inputs.dockerTag }}"
           echo "::set-output name=github_image_archived::docker.pkg.github.com/anime-skip/${{ inputs.githubImage }}:${{ inputs.version }}"
           echo "::set-output name=heroku_image_deployed::registry.heroku.com/${{ inputs.herokuApp }}/web"
 
-      - name: Build :${{ inputs.tag }}
+      - name: Build :${{ inputs.dockerTag }}
         run: |
           docker build . \
             --build-arg VERSION=${{ steps.details.outputs.version }} \
@@ -107,7 +107,7 @@ jobs:
           docker push ${{ steps.details.outputs.github_image_archived }}
           docker push ${{ steps.details.outputs.heroku_image_deployed }}
 
-      - name: Deploy :${{ inputs.tag }}
+      - name: Deploy :${{ inputs.dockerTag }}
         run: |
           heroku container:release -a ${{ inputs.herokuApp }} web
 
