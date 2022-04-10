@@ -31,7 +31,7 @@ runs:
             "apiKey": "${{ inputs.apiKey }}",
             "appVersion": "${{ inputs.version }}",
             "releaseStage": "${{ inputs.stage }}",
-            "builderName": "${{ input.builderName }}",
+            "builderName": "${{ inputs.builderName }}",
             "sourceControl": {
               "provider": "github",
               "repository": "https://github.com/${{ inputs.repository }}",
