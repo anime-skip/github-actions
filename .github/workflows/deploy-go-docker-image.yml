@@ -10,10 +10,14 @@ on:
         required: true
         type: string
         description: The stage to deploy to (email-service/email-api)
-      tag:
+      dockerTag:
         required: true
         type: string
-        description: The stage to deploy to (prod, staged)
+        description: The docker tag for the stage to deploy to ("prod", "staged")
+      releaseTag:
+        required: true
+        type: string
+        description: The git tag that will be deployed
       herokuApp:
         required: true
         type: string
@@ -26,6 +30,10 @@ on:
         required: true
         type: string
         description: The new version that is getting deployed (1.2.5, 0.4.0, etc.)
+      grafanaAppName:
+        required: true
+        type: string
+        description: The name of the app to be displayed in the release annotation on grafana (either "repo-name" or "repo-name/package-name")
     secrets:
       bugsnagApiKey:
         required: true
@@ -41,6 +49,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v1
+        with:
+          ref: ${{ inputs.releaseTag }}
+          fetch-depth: 0
 
       - name: Pull in Version Change
         run: git checkout main
@@ -75,7 +86,7 @@ jobs:
         id: details
         run: |
           VERSION="${{ inputs.version }}-$(TZ=UTC git --no-pager show --quiet --abbrev=12 --date='format-local:%Y%m%d%H%M%S' --format='%cd-%h')"
-          COMMIT_SHA="$(git --no-pager show --quiet --abbrev=40 --format='%h')"
+          COMMIT_SHA="$(git rev-parse --verify HEAD)"
 
           echo "::set-output name=simple_version::$SIMPLE_VERSION"
           echo "::set-output name=version::$VERSION"
@@ -104,19 +115,20 @@ jobs:
           heroku container:release -a ${{ inputs.herokuApp }} web
 
       - name: Notify Bugsnag Sources
-        run: |
-          curl https://build.bugsnag.com/ \
-            --request POST \
-            --header "Content-Type: application/json" \
-            --data '{
-              "apiKey": "${{ secrets.bugsnagApiKey }}",
-              "appVersion": "${{ steps.details.outputs.version }}",
-              "releaseStage": "${{ inputs.stage }}",
-              "builderName": "${{ github.actor }}",
-              "sourceControl": {
-                "provider": "github",
-                "repository": "https://github.com/${{ inputs.repository }}",
-                "revision": "${{ steps.details.outputs.commit_sha }}"
-              },
-              "metadata": {}
-            }'
+        uses: ./.github/actions/bugsnag-report-go-release
+        with:
+          apiKey: ${{ secrets.bugsnagApiKey }}
+          version: ${{ steps.details.outputs.version }}
+          commitHash: ${{ steps.details.outputs.commit_sha }}
+          releaseStage: ${{ inputs.stage }}
+          builderName: ${{ github.actor }}
+          repository: ${{ inputs.repository }}
+
+      - name: Add Release to Grafana
+        uses: ./.github/actions/grafana-release-annotation
+        with:
+          version: ${{ steps.details.outputs.version }}
+          repository: ${{ inputs.repository }}
+          tag: ${{ inputs.releaseTag }}
+          commitHash: ${{ steps.details.outputs.commit_sha }}
+          appName: ${{ inputs.grafanaAppName }}

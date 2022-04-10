@@ -1,0 +1,39 @@
+name: Grafana Release Annotation
+description: Create a release annotation on grafana marking the time when an application was released
+inputs:
+  version:
+    description: The raw version that was created (1.2.4, etc)
+    required: true
+  repository:
+    description: The "{owner}/{repo}" name from github.repository
+    required: true
+  tag:
+    description: The tag used when creating the release
+    required: true
+  commitHash:
+    description: The releases commit SHA
+    required: true
+  appName:
+    description: The name of the app for the annotation, commonly just the "repo-name", or "repo-name/package-name" if there are multiple applications in the repo
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: get-timestamp
+      shell: bash
+      run: echo "::set-output name=timestamp::$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+    - shell: bash
+      run: |
+        curl --request PUT \
+          --url https://usage-stats.anime-skip.com/annotations \
+          --header 'Content-Type: application/json' \
+          --data '{
+            "tags": [
+              "release",
+              "${{ inputs.appName }}"
+            ],
+            "text": "🚀&ensp;<strong>Release</strong><br /><code>${{ inputs.appName }}@${{ inputs.version }}</code><br /><hr /><p>&ensp;&bull;&ensp;<a href=\\"https://github.com/${{ inputs.repository }}/releases/tag/${{ inputs.tag }}\\" target=\\"_blank\\">GitHub Release</a><br />&ensp;&bull;&ensp;<a href=\\"https://github.com/${{ inputs.repository }}/tree/${{ inputs.commitHash }}\\" target=\\"_blank\\">View Code</a></p><hr />",
+            "timestamp": "${{ steps.get-timestamp.outputs.timestamp }}"
+          }'

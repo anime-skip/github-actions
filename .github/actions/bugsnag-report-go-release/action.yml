@@ -1,0 +1,41 @@
+name: Bugsnag Report Go Release
+description: Notify bugsnag of a release for a go application so bug reports can link to that version's source code on GitHub
+inputs:
+  apiKey:
+    required: true
+    description: The bugsnag API key
+  version:
+    required: true
+    description: The version bugsnag is configured to use at runtime
+  commitHash:
+    required: true
+    description: The commit hash the release was made at
+  releaseStage:
+    required: true
+    description: The release stage the app was published to
+  builderName:
+    required: true
+    description: The github.actor that performed the deployment
+  repository:
+    required: true
+    description: The github.repository the action is performed in
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        curl https://build.bugsnag.com/ \
+          --request POST \
+          --header "Content-Type: application/json" \
+          --data '{
+            "apiKey": "${{ inputs.apiKey }}",
+            "appVersion": "${{ inputs.version }}",
+            "releaseStage": "${{ inputs.stage }}",
+            "builderName": "${{ input.builderName }}",
+            "sourceControl": {
+              "provider": "github",
+              "repository": "https://github.com/${{ inputs.repository }}",
+              "revision": "${{ inputs.commitHash }}"
+            },
+            "metadata": {}
+          }'
