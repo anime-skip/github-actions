@@ -34,6 +34,6 @@ runs:
               "release",
               "${{ inputs.appName }}"
             ],
-            "text": "🚀&ensp;<strong>Release</strong><br /><code>${{ inputs.appName }}@${{ inputs.version }}</code><br /><hr /><p>&ensp;&bull;&ensp;<a href=\\"https://github.com/${{ inputs.repository }}/releases/tag/${{ inputs.tag }}\\" target=\\"_blank\\">GitHub Release</a><br />&ensp;&bull;&ensp;<a href=\\"https://github.com/${{ inputs.repository }}/tree/${{ inputs.commitHash }}\\" target=\\"_blank\\">View Code</a></p><hr />",
+            "text": "🚀&ensp;<strong>Release</strong><br /><code>${{ inputs.appName }}@${{ inputs.version }}</code><br /><hr /><p>&ensp;&bull;&ensp;<a href=\"https://github.com/${{ inputs.repository }}/releases/tag/${{ inputs.tag }}\" target=\"_blank\">GitHub Release</a><br />&ensp;&bull;&ensp;<a href=\"https://github.com/${{ inputs.repository }}/tree/${{ inputs.commitHash }}\" target=\"_blank\">View Code</a></p><hr />",
             "timestamp": "${{ steps.get-timestamp.outputs.timestamp }}"
           }'

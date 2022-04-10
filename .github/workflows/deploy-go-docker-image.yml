@@ -122,7 +122,7 @@ jobs:
           repository: ${{ inputs.repository }}
 
       - name: Add Release to Grafana
-        uses: anime-skip/github-actions/.github/actions/grafana-release-annotation@v8
+        uses: anime-skip/github-actions/.github/actions/grafana-release-annotation@v9
         with:
           version: ${{ steps.details.outputs.version }}
           repository: ${{ inputs.repository }}
