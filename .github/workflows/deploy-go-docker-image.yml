@@ -2,6 +2,10 @@ name: Deploy Go Docker Image
 on:
   workflow_call:
     inputs:
+      actionsVersion:
+        required: true
+        type: string
+        description: The version of shared actions to run
       stage:
         required: true
         type: string
@@ -112,7 +116,7 @@ jobs:
           heroku container:release -a ${{ inputs.herokuApp }} web
 
       - name: Notify Bugsnag Sources
-        uses: ./.github/actions/bugsnag-report-go-release
+        uses: anime-skip/github-actions/.github/actions/bugsnag-report-go-release@${{ inputs.actionsVersion }}
         with:
           apiKey: ${{ secrets.bugsnagApiKey }}
           version: ${{ steps.details.outputs.version }}
@@ -122,7 +126,7 @@ jobs:
           repository: ${{ inputs.repository }}
 
       - name: Add Release to Grafana
-        uses: ./.github/actions/grafana-release-annotation
+        uses: anime-skip/github-actions/.github/actions/grafana-release-annotation@${{ inputs.actionsVersion }}
         with:
           version: ${{ steps.details.outputs.version }}
           repository: ${{ inputs.repository }}
